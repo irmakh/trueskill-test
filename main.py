@@ -10,13 +10,23 @@ table {
     margin-left: auto;
     margin-right: auto;
 }
+.summonertable table,.summonertable th,.summonertable  td {
+  border: 1px solid #6f7482 !important;
+  background-color: #dee0e3 !important;
+}
+.center{
+    margin-left: auto !important;
+    margin-right: auto !important;
+    width: 100px;
+    display: block;
+}
 </style>    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">"""
 head = """
 <table><tr><td><a href='/'>Home</a></td></tr>
 <tr><td><a href='/add-player'> Add Player </a></td></tr>
 <tr><td><a href='/add-match'> Add Match </a></td></tr>
 <tr><td><a href='/start-session'> Start a new Session</a></td></tr>
-<tr><td>
+<tr><td style = "border: 1px solid #6f7482 !important;">
 """
 foot = """
 </td></tr></table>
@@ -26,7 +36,7 @@ def hello_world():
     players = redis.lrange('players', 0, -1)
 
     retval = """
-<table><th><td><h5>Summoner</h5></td><td><h5>Level</h5></td><td><h5>Mu</h5></td><td><h5>Sigma</h5></td></th>"""
+<table class='summonertable'><th><td><h5>Summoner</h5></td><td><h5>Level</h5></td><td><h5>Mu</h5></td><td><h5>Sigma</h5></td></th>"""
     i = 1
     for player in players:
         pname = str(player).replace("b'","").replace("'","")
@@ -53,7 +63,7 @@ def add_player():
     if request.method == "POST":
         name = request.form['name']
         redis.lpush('players', name)
-        return f"{head}{css}{name} added {foot}"
+        return f"{head}{css}Summoner <b>{name}</b> added! {foot}"
     return head+css+"""
 <form accept-charset=\"UTF-8\" action=\"\" autocomplete=\"off\" method=\"POST\">
 	<label for=\"name\">Player Name</label><br />
@@ -132,17 +142,41 @@ def add_match():
         return selectbox
     return head+css+"""
 <form accept-charset="UTF-8" action="" autocomplete="off" method="POST">
+<table>
+<tr><td style="color:green;">
+<b>WINNER</b>
+</td>
+<td>
+
+
+</td>
+<td style="color:red;">
+LOOSER
+</td></tr>
+<tr><td>
 """+create_player_select('p1',players)+"""
-<br />
+</td>
+<td>
+
 <h4>VS</h4>
-<br />
+</td>
+<td>
 """+create_player_select('p2',players)+"""
-Result:
-<select name="result" style='display:block !important'>
+</td></tr>
+<tr>
+<td  colspan="3"  style="align:center;">Result:
+<select name="result" class="center">
 <option value = "1">2-0</option>
  <option value = "2">2-1</option>
- </select>
-<button type="submit" value="Submit">Submit</button></form>
+ </select></td>
+</tr>
+<tr>
+<td  colspan="3"><button type="submit" value="Submit"  class="center">Add Match</button></td>
+</tr>
+</table>
+<br />
+
+</form>
     """+foot
 
 
