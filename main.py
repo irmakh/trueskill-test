@@ -4,36 +4,47 @@ import trueskill
 
 app = Flask(__name__)
 redis = redis.Redis(host='redis', port=6379, db=0)
-css = """    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">"""
+css = """<style>
+table {
+    width: 50% !important;
+    margin-left: auto;
+    margin-right: auto;
+}
+</style>    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">"""
+head = """
+<table><tr><td><a href='/'>Home</a></td></tr>
+<tr><td><a href='/add-player'> Add Player </a></td></tr>
+<tr><td><a href='/add-match'> Add Match </a></td></tr>
+<tr><td><a href='/start-session'> Start a new Session</a></td></tr>
+<tr><td>
+"""
+foot = """
+</td></tr></table>
+"""
 @app.route('/')
 def hello_world():
     players = redis.lrange('players', 0, -1)
 
     retval = """
-<table><th><td><h4>Players</h4></td><td>POINT</td></th>"""
+<table><th><td><h5>Summoner</h5></td><td><h5>Level</h5></td><td><h5>Mu</h5></td><td><h5>Sigma</h5></td></th>"""
     i = 1
     for player in players:
         pname = str(player).replace("b'","").replace("'","")
         if(redis.exists(pname+'-level')):
             plevel = redis.get(pname+'-level')
+            pskill = redis.lrange(pname+'-skill', 0, -1)
+            pmu = pskill[0]
+            psigma = pskill[1]
         else:
             plevel = 0
+            pmu = 25.0
+            psigma = 25.0/3.0
 
-        retval += f"<tr><td>{i}</td><td>"+pname+"</td><td>"+str(plevel).replace("b'","").replace("'","")+"</td></tr>"
+
+        retval += f"<tr><td><b>-</b></td><td>"+pname+"</td><td>"+str(plevel).replace("b'","").replace("'","")+"</td><td>"+str(pmu).replace("b'","").replace("'","")+"</td><td>"+str(psigma).replace("b'","").replace("'","")+"</td></tr>"
         i = i+1
     retval += "</table>"
-    return css+"""<table>
-    <tr><td><a href='/add-player'> Add Player </a></td></tr>
-    <tr><td><a href='/add-match'> Add Match </a></td></tr>
-    <tr><td><a href='/start-session'> Start a new Session</a></td></tr>
-
-    </table>
-    """+retval
-
-@app.route('/clear-players',methods=["GET"])
-def clear_players():
-    redis.delete("players")
-    return f"{css}<a href='/'>Home</a>"
+    return head+css+retval+foot
 
 
 
@@ -42,13 +53,13 @@ def add_player():
     if request.method == "POST":
         name = request.form['name']
         redis.lpush('players', name)
-        return f"{css}{name} added <a href='/'>Home</a>"
-    return css+"""
+        return f"{head}{css}{name} added {foot}"
+    return head+css+"""
 <form accept-charset=\"UTF-8\" action=\"\" autocomplete=\"off\" method=\"POST\">
 	<label for=\"name\">Player Name</label><br />
 	<input name=\"name\" type=\"text\" value=\"\" /> <br />
 	<button type=\"submit\" value=\"Submit\">Add</button>
-</form><a href='/'>Home</a>"""
+</form>"""+foot
 
 @app.route('/start-session')
 def start_session():
@@ -59,11 +70,8 @@ def start_session():
             redis.delete(pname+'-level')
             redis.delete(pname+'-skill')
     redis.delete("players")
-    return f"{css}New Session Started <a href='/'>Home</a>"
+    return f"{head}{css}New Session Started!{foot}"
 
-@app.route('/remove-player')
-def remove_player():
-    return css+"""Remove Player"""
 
 @app.route('/add-match',methods=["GET","POST"])
 def add_match():
@@ -113,7 +121,7 @@ def add_match():
         redis.set(p2+'-level', p2level)
 
 
-        return f"{css}{p1} VS {p2} Result: {results[result]} <br> {p1} Level: {p1level} <br> {p2} Level: {p2level}<br /><a href='/'>Home</a>"
+        return f"{head}{css}{p1} VS {p2} Result: {results[result]} <br> {p1} New Level: {p1level} <br> {p2} New Level: {p2level}<br />{foot}"
 
     players = redis.lrange('players', 0, -1)
     def create_player_select(name,players):
@@ -122,7 +130,7 @@ def add_match():
             selectbox += "<option value=\""+str(player).replace("b'","").replace("'","")+"\">"+str(player).replace("b'","").replace("'","")+"</option>"
         selectbox +="</select>"
         return selectbox
-    return css+"""
+    return head+css+"""
 <form accept-charset="UTF-8" action="" autocomplete="off" method="POST">
 """+create_player_select('p1',players)+"""
 <br />
@@ -134,8 +142,8 @@ Result:
 <option value = "1">2-0</option>
  <option value = "2">2-1</option>
  </select>
-<button type="submit" value="Submit">Submit</button></form><a href='/'>Home</a>
-    """
+<button type="submit" value="Submit">Submit</button></form>
+    """+foot
 
 
 @app.route('/calculate')
