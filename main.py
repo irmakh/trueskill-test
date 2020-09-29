@@ -25,6 +25,7 @@ head = """
 <table><tr><td><a href='/'>Home</a></td></tr>
 <tr><td><a href='/add-player'> Add Player </a></td></tr>
 <tr><td><a href='/add-match'> Add Match </a></td></tr>
+<tr><td><a href='/reset-matches'> Reset Matches</a></td></tr>
 <tr><td><a href='/start-session'> Start a new Session</a></td></tr>
 <tr><td style = "border: 1px solid #6f7482 !important;">
 """
@@ -82,6 +83,16 @@ def start_session():
     redis.delete("players")
     return f"{head}{css}New Session Started!{foot}"
 
+@app.route('/reset-matches')
+def reset_matches():
+
+    players = redis.lrange('players', 0, -1)
+    for player in players:
+        pname = str(player).replace("b'","").replace("'","")
+        if(redis.exists(pname+'-level')):
+            redis.delete(pname+'-level')
+            redis.delete(pname+'-skill')
+    return f"{head}{css} Matches Reseted!{foot}"
 
 @app.route('/add-match',methods=["GET","POST"])
 def add_match():
@@ -109,12 +120,10 @@ def add_match():
         p2Obj = Player()
         p2Obj.skill = (float(p2skill[0]), float(p2skill[1]))
         p2Obj.name = p2
-        if(result == '1'):
-            p1Obj.rank = 1
-            p2Obj.rank = 2
-        elif(result == '2'):
-            p1Obj.rank = 2
-            p2Obj.rank = 1
+
+        p1Obj.rank = 1
+        p2Obj.rank = 2
+
         winconstant = 1
         if(result == '2'):
             winconstant = 0.7
