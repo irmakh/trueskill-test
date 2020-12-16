@@ -1,0 +1,3255 @@
+openapi: 3.0.0
+info:
+  title: Tripian Recommendation Engine
+  description: |-
+    <b>Requirements</b><br><br> <b>API Requests:</b><br> Authenticate your account by including your private key in API requests. Your API keys carry many privileges, so be sure to keep them secure! Do not share your secret API keys in publicly accessible areas such as GitHub, client-side code, and so forth.<br><br>
+    <b>Creating A New Trip:</b><br> 1.First, you need to register a user (customer).<br> 2.Login as a user and obtain an access token to be able to create a trip on behalf of the user.<br><br>
+    <b>Standart request and response structure</b><br><br>
+    <b>Successful response:</b><br> `{"status": 200,"success": true,"message": "Success","data": {returned objects}}`<br><br>
+    <b>Error:</b><br> `{"status": "Error code","success": false,"message": {error messages}}`<br><br>
+    <b>Call with pagination:</b><br> `{"status": 200,"success": true,"message": "Success","data": {returned objects},"pagination": {"count":{returned record count},"total": {total record number},"per_age": {record count per page},"current_page": {active page number},"total_page": {total page number},"links": {"previous": {previous page url},"next": {next page url}}}}`<br><br>
+    <b>Other Useful Tips</b><br> - If a call supports pagination, you can send page and limit parameters<br> &nbsp; &nbsp; - <b>"limit"</b> parameter states no of record to display<br> &nbsp; &nbsp; - <b>"page"</b> parameter states which page to display
+  version: v3.0.8
+  contact:
+    name: Tripian
+    url: 'http://www.tripian.com'
+    email: info@tripian.com
+  license: {}
+  termsOfService: 'https://www.tripian.com/terms-conditions.html'
+servers:
+  - url: 'https://i3btr8wa1k.execute-api.eu-west-1.amazonaws.com/api/'
+    description: Tripian API v3.0.8
+tags:
+  - name: City List
+    description: City informations
+  - name: Places of Intereset
+    description: POI categories and POI informations
+  - name: User Profile
+    description: User Profile Services
+  - name: Trip Planner
+    description: Trip planner process
+  - name: Quick Recommendations
+    description: Recommendations
+  - name: Tripian Internal
+    description: Namespaces For internal Use
+paths:
+  /city:
+    get:
+      tags:
+        - City List
+      summary: Available Cities
+      description: Obtain the list of all available cities and city_ids.
+      operationId: get-cities
+      parameters:
+        - name: search
+          in: query
+          description: Search term for in city name
+          required: false
+          schema:
+            type: string
+          example: tor
+        - name: countrycode
+          in: query
+          description: "Country's code to look cities for"
+          required: false
+          schema:
+            type: string
+          example: ca
+        - name: limit
+          in: query
+          description: 'Record limit (Default: 20)'
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 300
+          example: 20
+        - name: page
+          in: query
+          description: Page of displayed records
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 5000
+          example: 1
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CitiesResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+      security:
+        - API Key: []
+  '/city/{id}':
+    get:
+      tags:
+        - City List
+      summary: City Info
+      description: 'Obtain information (such as ) on a specific city. Returned results include city_id, featured image, coordinates, country and continent.'
+      operationId: get-city
+      parameters:
+        - name: id
+          in: path
+          description: City id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CityResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+      security:
+        - API Key: []
+  /poi-category:
+    get:
+      security:
+        - API Key: []
+      tags:
+        - Places of Intereset
+      summary: POI Categories
+      description: |-
+        Obtain the list of all categories, such as attractions, restaurants, cafes, bars, religious places, cool finds, shopping centers, museums, bakeries and art galleries. Returned results include category ids.<br><br>
+        *This call supports "pagination
+      operationId: get-poi-categories
+      parameters: []
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/POICategoriesResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+  /poi:
+    get:
+      security:
+        - API Key: []
+      tags:
+        - Places of Intereset
+      summary: All POI
+      description: |-
+        Obtain the list of all POIs in our database. Returned results include, POI id, city id, category id, name, address, coordinates, phone number, website, opening/closing times, tags, icon, description (if available), price range and images.<br><br>
+        Use city id to obtain POIs of a specific city.<br> Use coordinates to obtain nearby POIs (use category or distance parameters to filter)
+      operationId: get-pois
+      parameters:
+        - name: city_id
+          in: query
+          description: City id is required if you are not using the coordinate parameter
+          schema:
+            type: integer
+          example: 1
+        - name: coordinate
+          in: query
+          description: 'Coordinate is required if you are not using the city_id parameter (Format: latitude,longitude)'
+          required: false
+          schema:
+            type: string
+          example: '43.653226,-79.38318429999998'
+        - name: search
+          in: query
+          description: 'Search terms for in poi names or tags (for example "restaurant", "museum", "bar" etc.)'
+          required: false
+          schema:
+            type: string
+          example: cafe
+        - name: poi_ids
+          in: query
+          description: 'Requested POI ids seperated by , Example: 123,7748,345'
+          required: false
+          explode: true
+          schema:
+            type: string
+          example: '1,2,3'
+        - name: must_try_ids
+          in: query
+          description: 'Requested Must Try ids separated by commas, e.g: 123,456,789'
+          required: false
+          explode: true
+          schema:
+            type: string
+          example: '123,456,789'
+        - name: poi_categories
+          in: query
+          description: Poi categories
+          required: false
+          explode: true
+          schema:
+            type: string
+          example: '1,2'
+        - name: distance
+          in: query
+          description: 'Distance parameter value is in <strong>km</strong>. This parameter cannot be used without the coordinate parameter. Default value: 50(km)'
+          required: false
+          schema:
+            type: number
+          example: 10.5
+        - name: limit
+          in: query
+          description: 'Record limit (Default: 20)'
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+          example: 20
+        - name: page
+          in: query
+          description: Page of displayed records
+          required: false
+          schema:
+            type: integer
+          example: 1
+        - schema:
+            type: string
+          in: query
+          name: bounds
+          description: 'Search boundaries (lat_max,lat_min,lng_max,lng_min)'
+        - name: sort
+          in: query
+          description: 'Sort pois with this parameter. Separate by comma. Example: price,rating (to sort by price then by rating)'
+          required: false
+          schema:
+            type: string
+            enum: ['price', 'rating', 'rating_count']
+          example: 'price,rating'
+        - name: order
+          in: query
+          description: 'You can explicitly set sorting order(default is descending). Can be either ascending or descending.'
+          required: false
+          schema:
+            type: string
+            enum: ['ascending', 'descending']
+        - name: price
+          in: query
+          description: 'Filter pois by price, separated by comma.'
+          required: false
+          schema:
+            type: string
+          example: '2,3'
+        - name: rating
+          in: query
+          description: 'Filter pois by rating, separated by comma.'
+          required: false
+          schema:
+            type: string
+          example: '4,5'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/POIsResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+  '/poi/{id}':
+    get:
+      security:
+        - API Key: []
+      tags:
+        - Places of Intereset
+      summary: POI Info
+      description: 'Obtain information on a specific POI by using POI id. Returned results include, POI id, city id, category id, name, address, coordinates, phone number, website, opening/closing times, tags, icon, description (if available), price range and images.'
+      operationId: get-poi
+      parameters:
+        - name: id
+          in: path
+          description: Place id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/POIResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+  /top-ten:
+    get:
+      security:
+        - API Key: []
+      tags:
+        - Places of Intereset
+      summary: Top 10 places of interest
+      description: Get top 10 places of interest in one particular city based on category
+      operationId: get-top-ten
+      parameters:
+        - name: city_id
+          in: query
+          description: City id is required to see what is the top 10 places in the city.
+          required: true
+          schema:
+            type: integer
+          example: 1
+        - name: poi_categories
+          in: query
+          description: Poi category ids to see the top 10 places in those categories
+          required: true
+          schema:
+            type: string
+          example: '1,2,3,4'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopTenResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+  /register:
+    post:
+      security:
+        - API Key: []
+      tags:
+        - User Profile
+      summary: Register
+      description: Create a new user (customer) by posting the required parameters indicated below. No extra step needed to active the new user.
+      operationId: add-user
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+  /login:
+    post:
+      security:
+        - API Key: []
+      tags:
+        - User Profile
+      summary: Login
+      description: 'Obtain the access token for API calls that require user identification. You can login with username. Also, you can login with trip hash. For login with trip hash use the trip_hash attribute in body of the request.'
+      operationId: user-login
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/LoginRequestEmail'
+                - $ref: '#/components/schemas/LoginRequestTripHash'
+                - $ref: '#/components/schemas/LoginRequestUsername'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+  /refresh:
+    post:
+      security:
+        - API Key: []
+      tags:
+        - User Profile
+      summary: Refresh Token
+      description: Obtain the new access token when token is expired
+      operationId: token-refresh
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+  /user:
+    get:
+      security:
+        - API Key: []
+        - Access Token: []
+      tags:
+        - User Profile
+      summary: User Info
+      description: 'Obtain personal user information (must be logged in with access token), such as username and preferences.'
+      operationId: get-user
+      parameters: []
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+    put:
+      security:
+        - API Key: []
+        - Access Token: []
+      tags:
+        - User Profile
+      summary: Update User Info
+      description: 'Update user information (must be logged in with access token), such as personal preferences.'
+      operationId: update-user
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+  /user-trip:
+    get:
+      security:
+        - API Key: []
+        - Access Token: []
+      tags:
+        - User Profile
+      summary: User Trips
+      description: 'Obtain list of user’s past and upcoming trips (must be logged in with access token). Returned result include, trip id, hash (secure version of trip id), city, arrival/departure details, trip creating time and pagination.'
+      operationId: get-user-trips
+      parameters:
+        - name: from
+          in: query
+          description: 'Trip filter start date (Format: yyyy-mm-dd)'
+          required: false
+          schema:
+            type: string
+          example: '2019-06-28'
+        - name: to
+          in: query
+          description: 'Trip filter end date (Format: yyyy-mm-dd)'
+          required: false
+          schema:
+            type: string
+          example: '2019-06-30'
+        - name: limit
+          in: query
+          description: 'Record limit (default: 20)'
+          required: false
+          schema:
+            type: integer
+          example: 20
+        - name: page
+          in: query
+          description: Page of displayed records
+          required: false
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripsResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+  '/user-trip/{trip_hash}':
+    get:
+      security:
+        - API Key: []
+        - Access Token: []
+      tags:
+        - User Profile
+      summary: Trip Profile
+      description: Get users trip profile with trip_hash
+      operationId: get-trip-profile
+      parameters:
+        - name: trip_hash
+          in: path
+          description: "Trip's hash"
+          required: true
+          schema:
+            type: string
+          example: 9c235c40209d69ffceb4661a0e07a813
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripReferenceSuccessfulResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+  /user-favorite:
+    post:
+      security:
+        - API Key: []
+        - Access Token: []
+      tags:
+        - User Profile
+      summary: Add Favorite POI
+      description: Add user favorite POI
+      operationId: add-user-favorite
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FavoriteRequest'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/FavoriteResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+    get:
+      security:
+        - API Key: []
+        - Access Token: []
+      tags:
+        - User Profile
+      summary: User Favorite POI
+      description: Get user all favorite POI list
+      operationId: get-user-favorites
+      parameters:
+        - name: city_id
+          in: query
+          description: POI city id
+          required: false
+          schema:
+            type: integer
+          example: 1
+        - name: trip_hash
+          in: query
+          description: Trip hash string
+          required: false
+          schema:
+            type: string
+          example: 9c235c40209d69ffceb4661a0e07a813
+        - name: limit
+          in: query
+          description: 'Record limit (Default: 20)'
+          required: false
+          schema:
+            type: integer
+          example: 20
+        - name: page
+          in: query
+          description: Page of displayed records
+          required: false
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FavoritesResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+  '/user-favorite/{id}':
+    put:
+      security:
+        - API Key: []
+        - Access Token: []
+      tags:
+        - User Profile
+      summary: Update A Favorite
+      description: 'Update companion information (must be logged in with access token), such as poi_id and trip_hash'
+      operationId: update-user-favorite
+      parameters:
+        - name: id
+          in: path
+          description: Favorite id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FavoriteUpdateRequest'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FavoriteResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+    delete:
+      security:
+        - API Key: []
+        - Access Token: []
+      tags:
+        - User Profile
+      summary: Delete A Favorite
+      description: This request deletes a favorite record.
+      operationId: delete-user-favorite
+      parameters:
+        - name: id
+          in: path
+          description: Favorite id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+  /user-companion:
+    get:
+      security:
+        - API Key: []
+        - Access Token: []
+      tags:
+        - User Profile
+      summary: User Companion
+      description: Get user companion list
+      operationId: get-user-companions
+      parameters:
+        - name: limit
+          in: query
+          description: 'Record limit (Default: 20)'
+          required: false
+          schema:
+            type: integer
+          example: 20
+        - name: page
+          in: query
+          description: Page of displayed records
+          required: false
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanionsResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+    post:
+      security:
+        - API Key: []
+        - Access Token: []
+      tags:
+        - User Profile
+      summary: Add A Companion
+      description: Add a new companion
+      operationId: add-user-companions
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompanionRequest'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanionResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+  '/user-companion/{id}':
+    put:
+      security:
+        - API Key: []
+        - Access Token: []
+      tags:
+        - User Profile
+      summary: Update A Companion
+      description: 'Update companion information (must be logged in with access token), such as name and answers'
+      operationId: edit-user-companion
+      parameters:
+        - name: id
+          in: path
+          description: Companion id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompanionRequest'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanionResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+    delete:
+      security:
+        - API Key: []
+        - Access Token: []
+      tags:
+        - User Profile
+      summary: Delete A Companion
+      description: This request deletes a companion record.
+      operationId: delete-user-companion
+      parameters:
+        - name: id
+          in: path
+          description: Companion id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+  /question:
+    get:
+      security:
+        - API Key: []
+      tags:
+        - Trip Planner
+      summary: Questions
+      description: Get questions from this namespace.
+      operationId: get-questions
+      parameters:
+        - name: city_id
+          in: query
+          description: 'City id, add "," for multiple cities'
+          required: true
+          schema:
+            type: integer
+            example: 144
+        - name: category
+          in: query
+          description: 'Question category (trip, profile or companion) Default: trip'
+          required: false
+          schema:
+            type: string
+            example: trip
+            enum:
+              - trip
+              - profile
+              - companion
+        - name: language_code
+          in: query
+          description: 'Language code (Values: en,fr) Default: en'
+          required: false
+          schema:
+            type: string
+            example: en
+            enum:
+              - en
+              - fr
+        - name: limit
+          in: query
+          description: 'Record limit (default: 20)'
+          required: false
+          schema:
+            type: integer
+          example: 20
+        - name: page
+          in: query
+          description: Page of displayed records
+          required: false
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionsResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+  /trip:
+    post:
+      security:
+        - API Key: []
+        - Access Token: []
+      tags:
+        - Trip Planner
+      summary: Create A Trip
+      description: Generate a new trip.
+      operationId: add-trip
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TripProfile'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+  '/trip/{trip_hash}':
+    get:
+      security:
+        - API Key: []
+        - Access Token: []
+      tags:
+        - Trip Planner
+      summary: Trip Info
+      description: Get info of a specific trip.
+      operationId: get-trip
+      parameters:
+        - name: trip_hash
+          in: path
+          description: Trip hash
+          required: true
+          schema:
+            type: string
+          example: 9c235c40209d69ffceb4661a0e07a813
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+    put:
+      security:
+        - API Key: []
+        - Access Token: []
+      tags:
+        - Trip Planner
+      summary: Update A Trip
+      description: Update a trip.
+      operationId: edit-trip
+      parameters:
+        - name: trip_hash
+          in: path
+          description: Trip hash
+          required: true
+          schema:
+            type: string
+          example: 9c235c40209d69ffceb4661a0e07a813
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TripProfile'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+    delete:
+      security:
+        - API Key: []
+        - Access Token: []
+      tags:
+        - Trip Planner
+      summary: Delete A Trip
+      description: Delete a trip
+      operationId: delete-trip
+      parameters:
+        - name: trip_hash
+          in: path
+          description: Trip hash
+          required: true
+          schema:
+            type: string
+          example: 9c235c40209d69ffceb4661a0e07a813
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+  /step:
+    post:
+      security:
+        - API Key: []
+        - Access Token: []
+      tags:
+        - Trip Planner
+      summary: Add A Step
+      description: Add a step
+      operationId: add-step
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StepRequest'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StepResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+  '/step/{id}':
+    parameters:
+      - name: id
+        in: path
+        description: Step id
+        required: true
+        schema:
+          type: integer
+        example: 1
+    put:
+      security:
+        - API Key: []
+        - Access Token: []
+      tags:
+        - Trip Planner
+      summary: Update A Step
+      description: You can only update poi_id and order number. Score will be calculated after update.
+      operationId: update-step
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StepUpdateRequest'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StepResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+    delete:
+      security:
+        - API Key: []
+        - Access Token: []
+      tags:
+        - Trip Planner
+      summary: Delete A Step
+      description: Delete a step
+      operationId: delete-step
+      parameters:
+        - name: id
+          in: path
+          description: Step id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+  '/plan/{id}':
+    get:
+      security:
+        - API Key: []
+      tags:
+        - Trip Planner
+      summary: Plan Info
+      description: Get info of a specific plan.
+      operationId: get-plan
+      parameters:
+        - name: id
+          in: path
+          description: Plan id for single day
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+    put:
+      security:
+        - API Key: []
+      tags:
+        - Trip Planner
+      summary: Update Plan
+      description: |-
+        Update a plan.<br>
+        start_time parameter is must be before end time (Format: hh:ii)<br>
+        *Plan will regenerate if you send this parameter.<br><br>
+        end_time parameter is must be after start time (Format: hh:ii)<br>
+        *Plan will regenerate if you send this parameter. <br><br>
+        orders parameter for multiple step sorting in plan. Use "," for multiple step poi id. For example: 1,2,3<br>
+        *Plan will not regenerate if you send this parameter only
+      operationId: edit-plan
+      parameters:
+        - name: id
+          in: path
+          description: Plan id for single day
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanUpdateRequest'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+  /step-alternative:
+    get:
+      security:
+        - API Key: []
+        - Access Token: []
+      tags:
+        - Trip Planner
+      summary: Alternative POI Suggestions
+      description: 'Get POI alternatives for your trip, plans or steps.'
+      operationId: step-alternative
+      parameters:
+        - name: trip_hash
+          in: query
+          description: Trip hash (this parameter or plan_id or step_id required)
+          required: true
+          schema:
+            type: string
+          example: 9c235c40209d69ffceb4661a0e07a813
+        - name: plan_id
+          in: query
+          description: Plan id (this parameter or trip_hash or step_id required)
+          required: true
+          schema:
+            type: integer
+          example: 1
+        - name: step_id
+          in: query
+          description: Step id (this parameter or trip_hash or plan_id required)
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StepAlternativeResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+  /recommendation:
+    get:
+      security:
+        - API Key: []
+      tags:
+        - Quick Recommendations
+      summary: Quick Recommendations
+      description: Get quick recommendation using provided parameters.
+      operationId: get-recommendations
+      parameters:
+        - name: trip_hash
+          in: query
+          description: Trip hash (City_id or Hash parameter can be used. Any parameter which are not sent with Hash comes from parameters sent while generating the Trip.)
+          required: false
+          schema:
+            type: string
+          example: 9c235c40209d69ffceb4661a0e07a813
+        - name: city_id
+          in: query
+          description: City id (This parameter not required if use only hash parameter)
+          required: false
+          schema:
+            type: integer
+          example: 1
+        - name: adults
+          in: query
+          description: Adults number
+          required: false
+          schema:
+            type: integer
+          example: 2
+        - name: adult_age_average
+          in: query
+          description: 'Adult travellers age average (Example: 26)'
+          required: false
+          schema:
+            type: integer
+          example: 28
+        - name: children
+          in: query
+          description: Children number
+          required: false
+          schema:
+            type: integer
+          example: 1
+        - name: children_age_average
+          in: query
+          description: 'Children travellers age average (Example: 14)'
+          required: false
+          schema:
+            type: integer
+          example: 3
+        - name: coordinate
+          in: query
+          description: '(Temporarily unavailable) Coordinate Example: 43.653226,-79.38318429'
+          required: false
+          schema:
+            type: string
+          example: '43.653226,-79.38318429999998'
+        - name: answers
+          in: query
+          description: 'Answers of the city questions Example: 1,2,3,4'
+          required: false
+          schema:
+            type: string
+          example: '1,2,3'
+        - name: poi_categories
+          in: query
+          description: Get poi recommendations of given specific poi categories ID
+          required: false
+          schema:
+            type: string
+          example: '1,2'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+  /user-reservation:
+    get:
+      security:
+        - API Key: []
+        - Access Token: []
+      tags:
+        - Tripian Internal
+      summary: User Reservations
+      description: Get user Reservations list
+      operationId: get-user-reservation
+      parameters:
+        - name: limit
+          in: query
+          description: 'Record limit (Default: 20)'
+          required: false
+          schema:
+            type: integer
+          example: 20
+        - name: page
+          in: query
+          description: Page of displayed records
+          required: false
+          schema:
+            type: integer
+          example: 1
+        - name: provider
+          in: query
+          description: Filter by provider field
+          required: false
+          schema:
+            type: string
+          example: yelp
+        - name: trip_hash
+          in: query
+          description: Filter reservations by trip_hash
+          required: false
+          schema:
+            type: string
+          example: 9c235c40209d69ffceb4661a0e07a813
+        - name: poi_id
+          in: query
+          description: Filter reservations by poi_id
+          required: false
+          schema:
+            type: integer
+          example: 123
+        - name: city_id
+          in: query
+          description: Filter reservations by city_id
+          required: false
+          schema:
+            type: integer
+          example: 123
+        - name: from
+          in: query
+          description: Filter by date
+          required: false
+          schema:
+            type: string
+          example: '2020-04-13 04:50:59'
+        - name: to
+          in: query
+          description: Filter by date
+          required: false
+          schema:
+            type: string
+          example: '2020-04-13 18:50:59'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserReservationsResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+    post:
+      security:
+        - API Key: []
+        - Access Token: []
+      tags:
+        - Tripian Internal
+      summary: Add A Reservation
+      description: Add a new Reservation
+      operationId: add-user-reservation
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserReservationPostRequestModel'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserReservationPostResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+  '/user-reservation/{id}':
+    put:
+      security:
+        - API Key: []
+        - Access Token: []
+      tags:
+        - Tripian Internal
+      summary: Update A Reservation
+      description: Update reservation information (must be logged in with access token)
+      operationId: edit-user-reservation
+      parameters:
+        - name: id
+          in: path
+          description: Companion id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserReservationPutRequestModel'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserReservationPutResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+    delete:
+      security:
+        - API Key: []
+        - Access Token: []
+      tags:
+        - Tripian Internal
+      summary: Delete A Reservation
+      description: This request deletes a reservation record.
+      operationId: delete-user-reservation
+      parameters:
+        - name: id
+          in: path
+          description: Reservation id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+  /user-reaction:
+    get:
+      security:
+        - API Key: []
+        - Access Token: []
+      tags:
+        - Tripian Internal
+      summary: User Reactions
+      description: Get user Reactions list
+      operationId: get-user-reaction
+      parameters:
+        - name: limit
+          in: query
+          description: 'Record limit (Default: 20)'
+          required: false
+          schema:
+            type: integer
+          example: 20
+        - name: page
+          in: query
+          description: Page of displayed records
+          required: false
+          schema:
+            type: integer
+          example: 1
+        - name: reaction
+          in: query
+          description: Filter by provider field
+          required: false
+          schema:
+            type: string
+            enum:
+              - Thumbs Up
+              - Thumbs Down
+              - Neutral
+          example: Thumbs Up
+        - name: trip_hash
+          in: query
+          description: Filter by trip_hash
+          required: false
+          schema:
+            type: string
+          example: 9c235c40209d69ffceb4661a0e07a813
+        - name: from
+          in: query
+          description: Filter by date
+          required: false
+          schema:
+            type: string
+          example: '2020-04-13 04:50:59'
+        - name: to
+          in: query
+          description: Filter by date
+          required: false
+          schema:
+            type: string
+          example: '2020-04-13 18:50:59'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserReactionsResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+    post:
+      security:
+        - API Key: []
+        - Access Token: []
+      tags:
+        - Tripian Internal
+      summary: Add A Reaction
+      description: Add a new reaction
+      operationId: add-user-reaction
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserReactionPostRequestModel'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserReactionPostResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+  '/user-reaction/{id}':
+    put:
+      security:
+        - API Key: []
+        - Access Token: []
+      tags:
+        - Tripian Internal
+      summary: Update A Reaction
+      description: Update reaction information (must be logged in with access token)
+      operationId: edit-user-reaction
+      parameters:
+        - name: id
+          in: path
+          description: Reaction id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserReactionPutRequestModel'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserReactionPutResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+    delete:
+      security:
+        - API Key: []
+        - Access Token: []
+      tags:
+        - Tripian Internal
+      summary: Delete A Reaction
+      description: This request deletes a reaction record.
+      operationId: delete-user-reaction
+      parameters:
+        - name: id
+          in: path
+          description: Reaction id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+components:
+  schemas:
+    SuccessfulResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 200
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Success
+    ForbiddenResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 403
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Not allowed.
+    NotFoundResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 404
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Not found.
+    DeleteResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 200
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: 'Record successfully deleted!'
+        data:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 123
+    AddedResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 200
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: 'Record successfully added!'
+        data:
+          properties:
+            added_record_id:
+              type: integer
+              example: 123
+          type: object
+    PaginationLinks:
+      type: object
+      properties:
+        previous:
+          type: string
+          nullable: true
+          example: previous page link
+        next:
+          type: string
+          nullable: true
+          example: next page link
+    Pagination:
+      type: object
+      properties:
+        count:
+          type: integer
+          nullable: false
+          example: 20
+        total:
+          type: integer
+          nullable: false
+          example: 40
+        per_page:
+          type: integer
+          nullable: false
+          example: 20
+        current_page:
+          type: integer
+          nullable: false
+          example: 1
+        total_pages:
+          type: integer
+          nullable: false
+          example: 2
+        links:
+          $ref: '#/components/schemas/PaginationLinks'
+      x-examples:
+        example-1:
+          count: 20
+          total: 40
+          per_page: 20
+          current_page: 1
+          total_pages: 2
+          links:
+            previous: previous page link
+            next: next page link
+    Continent:
+      type: object
+      properties:
+        name:
+          type: string
+          nullable: false
+          example: North America
+    Country:
+      type: object
+      properties:
+        code:
+          type: string
+          nullable: false
+          example: ca
+        name:
+          type: string
+          nullable: false
+          example: Canada
+        continent:
+          $ref: '#/components/schemas/Continent'
+    Boundary:
+      type: array
+      nullable: false
+      items:
+        type: number
+        format: float
+    Coordinate:
+      type: object
+      nullable: false
+      properties:
+        lat:
+          type: number
+          nullable: false
+          example: 43.653226
+        lng:
+          type: number
+          nullable: false
+          example: -79.38318429999998
+    City:
+      type: object
+      properties:
+        id:
+          type: integer
+          nullable: false
+          example: 144
+        name:
+          type: string
+          nullable: false
+          example: Toronto
+        image:
+          $ref: '#/components/schemas/Image'
+        boundary:
+          $ref: '#/components/schemas/Boundary'
+        coordinate:
+          $ref: '#/components/schemas/Coordinate'
+        country:
+          $ref: '#/components/schemas/Country'
+        tastes:
+          type: array
+          items:
+            $ref: '#/components/schemas/TasteItem'
+        description:
+          type: string
+          nullable: true
+        status:
+          type: boolean
+          nullable: false
+    CityResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessfulResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/City'
+    CitiesResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessfulResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/City'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+    POICategory:
+      type: object
+      properties:
+        id:
+          type: integer
+          nullable: false
+          example: 35
+        name:
+          type: string
+          nullable: false
+          example: Breweries
+        description:
+          type: string
+          nullable: true
+          example: 'Art gallery, museum, etc.'
+        parent:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+              nullable: true
+              example: 4
+            name:
+              type: string
+              nullable: true
+              example: Nightlife
+    POICategoriesResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessfulResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/POICategory'
+    TasteItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          nullable: false
+          example: 123
+        name:
+          type: string
+          nullable: false
+          example: Macarons
+        description:
+          type: string
+          nullable: true
+          example: A macaron or French macaroon
+        image:
+          type: object
+          properties:
+            url:
+              type: string
+              nullable: false
+              example: 'http://t1.gstatic.com/images?q=tbn:ANd9GcRgXUZf2oGEm279pD4L8FGQ8Q1CPVx4T_IbMfhnRuUNZeCCr8vW1WjVxw'
+            width:
+              type: integer
+              nullable: true
+              example: 640
+            height:
+              type: integer
+              nullable: true
+              example: 320
+          nullable: false
+    ImageOwner:
+      type: object
+      nullable: true
+      properties:
+        title:
+          type: string
+          nullable: true
+          example: BerlinRockz Berlin
+        url:
+          type: string
+          nullable: true
+          example: 'https://maps.google.com/maps/contrib/116504884918926169212/photos'
+        avatar:
+          type: string
+          nullable: true
+          example: null
+    Image:
+      type: object
+      properties:
+        width:
+          type: integer
+          nullable: true
+          example: 640
+        height:
+          type: integer
+          nullable: true
+          example: 480
+        url:
+          type: string
+          nullable: false
+          example: 'https://poi-pics.s3-eu-west-1.amazonaws.com/Place/44/7254/13d22957650f166365f6bc1a480f020c.jpg'
+        image_owner:
+          $ref: '#/components/schemas/ImageOwner'
+    BookingProvider:
+      type: object
+      properties:
+        provider_id:
+          type: integer
+          nullable: false
+        provider_name:
+          type: string
+          nullable: false
+        product:
+          $ref: '#/components/schemas/BookingProduct'
+    BookingProduct:
+      type: object
+      properties:
+        id:
+          type: string
+          nullable: false
+          example: '192903'
+        title:
+          type: string
+          nullable: false
+          example: 'Istanbul: Basilica Cistern Skip-the-Line Guided Tour'
+        currency:
+          type: string
+          nullable: true
+          example: USD
+        price:
+          type: number
+          nullable: true
+          example: 355.5
+        price_description:
+          type: string
+          nullable: true
+          example: Individual
+        image:
+          type: string
+          nullable: true
+          example: 'https://cdn.provider-site.com/img/tour/5dde9c1d9fd9f.jpeg/21.jpg'
+        rating:
+          type: number
+          nullable: true
+          example: 4.5
+        rating_count:
+          type: integer
+          nullable: true
+          example: 4334
+        duration:
+          type: string
+          nullable: true
+          example: 30 min.
+        url:
+          type: string
+          nullable: true
+          example: 'https://www.provider-site.com/istanbul-l56/istanbul-basilica-cistern-skip-the-line-guided-tour-t192903/'
+        info:
+          type: array
+          items:
+            type: string
+          nullable: true
+    Booking:
+      type: array
+      items:
+        $ref: '#/components/schemas/BookingProvider'
+    POI:
+      type: object
+      x-examples: {}
+      properties:
+        id:
+          type: integer
+          nullable: false
+          example: 1
+        city_id:
+          type: integer
+          nullable: false
+          example: 160
+        name:
+          type: string
+          nullable: false
+          example: Spreepark
+        image:
+          $ref: '#/components/schemas/Image'
+        gallery:
+          type: array
+          items:
+            $ref: '#/components/schemas/Image'
+        price:
+          type: integer
+          nullable: true
+          example: 2
+        rating:
+          type: number
+          nullable: true
+          example: 4.15
+        rating_count:
+          type: integer
+          nullable: true
+          example: 52
+        description:
+          type: string
+          nullable: true
+          example: Spreepark is an abandoned...
+        web:
+          type: string
+          nullable: true
+          example: 'https://gruen-berlin.de/spreepark'
+        phone:
+          type: string
+          nullable: true
+          example: +49 30 7009060
+        address:
+          type: string
+          nullable: true
+          example: 'Kiehnwerderallee 1-3, 12437 Berlin, Germany'
+        icon:
+          type: string
+          nullable: false
+          example: Flag
+        coordinate:
+          $ref: '#/components/schemas/Coordinate'
+        marker_coordinate:
+          $ref: '#/components/schemas/Coordinate'
+        booking:
+          $ref: '#/components/schemas/Booking'
+        category:
+          type: array
+          items:
+            $ref: '#/components/schemas/POICategory'
+        tags:
+          type: array
+          items:
+            type: string
+          example:
+            - bar food
+            - wine list
+        must_tries:
+          type: array
+          items:
+            $ref: '#/components/schemas/TasteItem'
+        cuisines:
+          type: string
+          nullable: true
+          example: 'american, bar'
+        attention:
+          type: string
+          nullable: true
+          example: Reservation required. Dressy attire. Accepts cash only.
+        hours:
+          type: string
+          nullable: false
+          example: 'Mon, Tue, Wed, Thu, Fri: 11:00 AM – 06:00 PM | Sat: 10:00 AM – 04:00 PM'
+        closed:
+          type: array
+          nullable: false
+          example:
+            - 0
+            - 1
+            - 2
+          items:
+            type: integer
+            format: int64
+        distance:
+          type: number
+          nullable: true
+          example: 0.169
+        safety:
+          type: array
+          nullable: true
+          example:
+            - mask required
+            - temperature checks
+          items:
+            type: string
+        status:
+          type: boolean
+          nullable: false
+          example: true
+    POIResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessfulResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/POI'
+    TopTenResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessfulResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/TopTen'
+    TopTen:
+      type: object
+      properties:
+        category:
+          $ref: '#/components/schemas/POICategory'
+        top_ten_poi:
+          type: array
+          items:
+            $ref: '#/components/schemas/POIReference'
+    POIsResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessfulResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/POI'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+    POIReference:
+      type: object
+      properties:
+        id:
+          type: integer
+          nullable: false
+          example: 11980
+        name:
+          type: string
+          nullable: false
+          example: Example Restaurant
+        image:
+          $ref: '#/components/schemas/Image'
+        marker_coordinate:
+          $ref: '#/components/schemas/Coordinate'
+        category:
+          items:
+            $ref: '#/components/schemas/POICategory'
+          type: array
+    Answers:
+      type: array
+      nullable: false
+      items:
+        type: integer
+      example:
+        - 1
+        - 2
+    UserProfile:
+      type: object
+      properties:
+        answers:
+          $ref: '#/components/schemas/Answers'
+        age:
+          type: integer
+          nullable: true
+          example: 35
+    RegisterRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          nullable: false
+          example: 'test@test-email***.com'
+          description: email required if login_user not provided
+        password:
+          type: string
+          nullable: false
+          example: 'password***'
+          description: password required if login_user not provided
+        login_user:
+          type: string
+          example: test-user
+          description: this is required if email and password not provided
+        first_name:
+          type: string
+          nullable: true
+          example: tripian
+        last_name:
+          type: string
+          nullable: true
+          example: user
+        profile:
+          $ref: '#/components/schemas/UserProfile'
+      required:
+        - email
+        - password
+        - login_user
+    User:
+      type: object
+      properties:
+        email:
+          type: string
+          nullable: false
+          example: 'test@test-email***.com'
+        username:
+          type: string
+          nullable: false
+          example: 8bc909ed-8045-4bda-9e81-92c04ee93408
+        first_name:
+          type: string
+          nullable: true
+          example: tripian
+        last_name:
+          type: string
+          nullable: true
+          example: user
+        profile:
+          $ref: '#/components/schemas/UserProfile'
+    UserResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessfulResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/User'
+    Device:
+      type: object
+      properties:
+        device_id:
+          type: string
+          nullable: true
+          example: enter-your-device-id-here
+        firebase_token:
+          type: string
+          nullable: true
+          example: firebase_token-here
+        device_os:
+          type: string
+          nullable: true
+          example: device_os-here
+        os_version:
+          type: string
+          nullable: true
+          example: os_version-here
+        bundle_id:
+          type: string
+          nullable: true
+          example: os_bundle_idversion-here
+    LoginRequestEmail:
+      type: object
+      properties:
+        email:
+          type: string
+          nullable: false
+          example: test@tripian.com
+        password:
+          type: string
+          nullable: false
+          example: '******'
+        device:
+          $ref: '#/components/schemas/Device'
+      required:
+        - email
+        - password
+    LoginRequestTripHash:
+      type: object
+      properties:
+        trip_hash:
+          type: string
+          nullable: false
+          example: 9c235c40209d69ffceb4661a0e07a813
+        device:
+          $ref: '#/components/schemas/Device'
+      required:
+        - trip_hash
+    LoginRequestUsername:
+      type: object
+      properties:
+        login_user:
+          type: string
+          nullable: false
+          example: tripian-test-user
+        device:
+          $ref: '#/components/schemas/Device'
+      required:
+        - username
+    Login:
+      type: object
+      properties:
+        access_token:
+          type: string
+          nullable: false
+          example: eyJraWQiOiJDY1wvUHpaRU0zeCtrdnArOW9peEpXS2FTa0lCOXEwaURx...
+        expires_in:
+          type: integer
+          nullable: false
+          example: 3600
+        token_type:
+          type: string
+          nullable: false
+          example: Bearer
+        refresh_token:
+          type: string
+          nullable: false
+          example: eyJjdHkiOiJKV1QiLCJlbmMiOiJBMjU2R0NNIiwiYWxnIjoiUlNBLU9A...
+    LoginResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessfulResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/Login'
+    RefreshRequest:
+      type: object
+      properties:
+        refresh_token:
+          type: string
+          nullable: false
+          example: eyJjdHkiOiJKV1QiLCJlbmMiOiJBMjU2R0NNIiwiYWxnIjoiUlNBLU9...
+        device:
+          $ref: '#/components/schemas/Device'
+      required:
+        - refresh_token
+    Refresh:
+      type: object
+      properties:
+        access_token:
+          type: string
+          nullable: false
+          example: eyJraWQiOiJDY1wvUHpaRU0zeCtrdnArOW9peEpXS2FTa0lCOXEwaURx...
+        expires_in:
+          type: integer
+          nullable: false
+          example: 3600
+        token_type:
+          type: string
+          nullable: false
+          example: Bearer
+    RefreshResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessfulResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/Refresh'
+    UserUpdateRequest:
+      type: object
+      properties:
+        first_name:
+          type: string
+          nullable: true
+          example: Tripian
+        last_name:
+          type: string
+          nullable: true
+          example: Test
+        profile:
+          $ref: '#/components/schemas/UserProfile'
+        password:
+          type: string
+          nullable: false
+          example: Pass1234
+    CompanionIds:
+      type: array
+      nullable: false
+      items:
+        type: integer
+      example:
+        - 1
+        - 2
+    TripProfile:
+      type: object
+      properties:
+        city_id:
+          type: integer
+          nullable: false
+          example: 12
+        arrival_datetime:
+          type: string
+          format: date-time
+          nullable: false
+          example: '2021-07-21T09:00:00Z'
+        departure_datetime:
+          type: string
+          format: date-time
+          nullable: false
+          example: '2021-07-23T17:00:00Z'
+        number_of_adults:
+          type: integer
+          nullable: false
+          example: 3
+        number_of_children:
+          type: integer
+          nullable: true
+          example: 1
+        answers:
+          $ref: '#/components/schemas/Answers'
+        owner:
+          type: string
+          nullable: true
+          example: Mr.Black
+        accommodation:
+          $ref: '#/components/schemas/Accommodation'
+        companion_ids:
+          $ref: '#/components/schemas/CompanionIds'
+        pace:
+          type: string
+          nullable: true
+          example: FAST
+          enum:
+            - SLOW
+            - NORMAL
+            - FAST
+        do_not_generate:
+          type: integer
+          nullable: false
+          example: 0
+          enum:
+            - 0
+            - 1
+      required:
+        - city_id
+        - arrival_datetime
+        - departure_datetime
+        - number_of_adults
+    TripReference:
+      type: object
+      properties:
+        id:
+          type: integer
+          nullable: false
+          example: 1
+        trip_hash:
+          type: string
+          nullable: false
+          example: 9c235c40209d69ffceb4661a0e07a813
+        trip_profile:
+          $ref: '#/components/schemas/TripProfile'
+        city:
+          $ref: '#/components/schemas/City'
+    TripReferenceSuccessfulResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessfulResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/TripReference'
+    TripsResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessfulResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/TripReference'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+    FavoriteRequest:
+      type: object
+      properties:
+        poi_id:
+          type: integer
+          nullable: false
+          example: 1
+        trip_hash:
+          type: string
+          nullable: true
+          example: 9c235c40209d69ffceb4661a0e07a813
+      required:
+        - poi_id
+    Favorite:
+      type: object
+      properties:
+        id:
+          type: integer
+          nullable: false
+          example: 1
+        poi_id:
+          type: integer
+          nullable: false
+          example: 1
+        city_id:
+          type: integer
+          nullable: false
+          example: 159
+        trip_hash:
+          type: string
+          nullable: true
+          example: 9c235c40209d69ffceb4661a0e07a813
+    FavoriteResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessfulResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/Favorite'
+    FavoriteUpdateRequest:
+      type: object
+      properties:
+        poi_id:
+          type: integer
+          nullable: false
+          example: 1
+        trip_hash:
+          type: string
+          nullable: false
+          example: 9c235c40209d69ffceb4661a0e07a813
+    FavoritesResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessfulResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/Favorite'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+    CompanionRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          nullable: false
+          example: Best Friend
+        name:
+          type: string
+          nullable: false
+          example: Companion name
+        answers:
+          $ref: '#/components/schemas/Answers'
+        age:
+          type: integer
+          nullable: false
+          example: 23
+      required:
+        - name
+        - title
+        - age
+    Companion:
+      type: object
+      properties:
+        id:
+          type: integer
+          nullable: false
+          example: 1
+        title:
+          type: string
+          nullable: false
+          example: Best Friend
+        name:
+          type: string
+          nullable: false
+          example: Companion name
+        answers:
+          $ref: '#/components/schemas/Answers'
+        age:
+          type: integer
+          nullable: false
+          example: 23
+        trips:
+          type: array
+          nullable: false
+          items:
+            type: string
+            example: 9c235c40209d69ffceb4661a0e07a813
+    CompanionResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessfulResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/Companion'
+    CompanionsResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessfulResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/Companion'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+    Option:
+      type: object
+      properties:
+        id:
+          type: integer
+          nullable: false
+          example: 1
+        name:
+          type: string
+          nullable: false
+          example: Vegetarian
+        sub_options:
+          type: array
+          nullable: true
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                nullable: false
+                example: 1
+              name:
+                type: string
+                nullable: false
+                example: Vegetarian
+    Question:
+      type: object
+      properties:
+        id:
+          type: integer
+          nullable: false
+          example: 1
+        skippable:
+          type: boolean
+          nullable: false
+          example: true
+        select_multiple:
+          type: boolean
+          nullable: false
+          example: true
+        name:
+          type: string
+          nullable: false
+          example: Meal Preference
+        category:
+          type: string
+          nullable: false
+          example: trip
+        order:
+          type: integer
+          nullable: false
+          example: 1
+        options:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/Option'
+    QuestionsResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessfulResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/Question'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+    StepHours:
+      type: object
+      properties:
+        from:
+          type: string
+          nullable: true
+          example: '16:00'
+        to:
+          type: string
+          nullable: true
+          example: '17:30'
+    StepAlternatives:
+      type: array
+      items:
+        nullable: false
+        type: integer
+      example:
+        - 1
+        - 2
+    Step:
+      type: object
+      properties:
+        id:
+          type: integer
+          nullable: false
+          example: 1
+        poi:
+          $ref: '#/components/schemas/POI'
+        score:
+          maximum: 100
+          minimum: 0
+          type: integer
+          nullable: true
+          example: 65
+        hours:
+          $ref: '#/components/schemas/StepHours'
+        order:
+          type: integer
+          nullable: false
+          example: 1
+        alternatives:
+          $ref: '#/components/schemas/StepAlternatives'
+    Plan:
+      type: object
+      properties:
+        id:
+          type: integer
+          nullable: false
+          example: 1
+        date:
+          type: string
+          nullable: false
+          example: '2019-06-28'
+        start_time:
+          type: string
+          nullable: false
+          example: '10:30'
+        end_time:
+          type: string
+          nullable: false
+          example: '21:00'
+        generated_status:
+          type: integer
+          nullable: false
+          example: 1
+          enum:
+            - -1
+            - 0
+            - 1
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/Step'
+    Trip:
+      type: object
+      properties:
+        id:
+          type: integer
+          nullable: false
+          example: 1
+        trip_hash:
+          type: string
+          nullable: false
+          example: 9c235c40209d69ffceb4661a0e07a813
+        trip_profile:
+          $ref: '#/components/schemas/TripProfile'
+        city:
+          $ref: '#/components/schemas/City'
+        plans:
+          type: array
+          nullable: false
+          items:
+            $ref: '#/components/schemas/Plan'
+    TripResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessfulResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/Trip'
+    StepRequest:
+      type: object
+      properties:
+        plan_id:
+          type: integer
+          example: 1
+        poi_id:
+          type: integer
+          example: 1
+        order:
+          type: integer
+          example: 1
+      required:
+        - plan_id
+        - poi_id
+    StepUpdateRequest:
+      type: object
+      properties:
+        poi_id:
+          type: integer
+          nullable: false
+          example: 1
+        order:
+          type: integer
+          nullable: false
+          example: 1
+    StepResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessfulResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/Step'
+    PlanResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessfulResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/Plan'
+    PlanUpdateRequest:
+      type: object
+      properties:
+        start_time:
+          type: string
+          example: '09:30'
+        end_time:
+          type: string
+          example: '19:30'
+        orders:
+          type: array
+          example:
+            - 1
+            - 2
+            - 3
+          items:
+            type: integer
+    StepAlternativeResponse:
+      type: array
+      items:
+        type: integer
+    Recommendation:
+      type: object
+      properties:
+        poi_ref:
+          $ref: '#/components/schemas/POIReference'
+        score:
+          maximum: 100
+          minimum: 0
+          type: integer
+          example: 45
+    RecommendationResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessfulResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/Recommendation'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+    Accommodation:
+      type: object
+      properties:
+        ref_id:
+          type: string
+        name:
+          type: string
+        address:
+          type: string
+        coordinate:
+          $ref: '#/components/schemas/Coordinate'
+    UserReservationPostRequestModel:
+      type: object
+      properties:
+        key:
+          type: string
+          nullable: false
+          example: reservation1
+        value:
+          type: object
+          nullable: false
+          example:
+            Key: Value
+        provider:
+          type: string
+          nullable: false
+          example: yelp
+        trip_hash:
+          type: string
+          nullable: false
+          example: 9c235c40209d69ffceb4661a0e07a813
+        poi_id:
+          type: integer
+          nullable: false
+          example: 123
+    UserReservationPutRequestModel:
+      type: object
+      properties:
+        key:
+          type: string
+          nullable: true
+          example: reservation1
+        value:
+          type: object
+          nullable: true
+          example:
+            Key: Value
+        provider:
+          type: string
+          nullable: true
+          example: yelp
+        trip_hash:
+          type: string
+          nullable: true
+          example: 9c235c40209d69ffceb4661a0e07a813
+        poi_id:
+          type: integer
+          nullable: true
+          example: 123
+    UserReservationPostResponseModel:
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+              nullable: false
+              example: 1
+        - $ref: '#/components/schemas/UserReservationPostRequestModel'
+        - type: object
+          properties:
+            updated_at:
+              type: string
+              nullable: true
+              example: null
+            created_at:
+              type: string
+              nullable: false
+              example: '2020-04-13 08:50:59'
+    UserReservationPutResponseModel:
+      allOf:
+        - $ref: '#/components/schemas/UserReservationPostResponseModel'
+        - type: object
+          properties:
+            updated_at:
+              type: string
+              nullable: false
+              example: '2020-04-13 09:50:59'
+    UserReservationsResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessfulResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/UserReservationPostResponseModel'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+    UserReservationPostResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessfulResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/UserReservationPostResponseModel'
+    UserReservationPutResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessfulResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/UserReservationPutResponseModel'
+    UserReactionPostRequestModel:
+      type: object
+      properties:
+        poi_id:
+          type: integer
+          nullable: false
+          example: 1234
+        step_id:
+          type: integer
+          nullable: true
+          example: 1234
+        reaction:
+          type: string
+          enum:
+            - Thumbs Up
+            - Thumbs Down
+            - Neutral
+          nullable: false
+          example: Thumbs Up
+        comment:
+          type: string
+          nullable: true
+          example: 'This is a great place!'
+    UserReactionPutRequestModel:
+      type: object
+      properties:
+        poi_id:
+          type: integer
+          nullable: true
+          example: 1234
+        step_id:
+          type: integer
+          nullable: true
+          example: 1234
+        reaction:
+          type: string
+          enum:
+            - Thumbs Up
+            - Thumbs Down
+            - Neutral
+          nullable: true
+          example: Thumbs Up
+        comment:
+          type: string
+          nullable: true
+          example: 'This is a great place!'
+    UserReactionPostResponseModel:
+      type: object
+      properties:
+        id:
+          type: integer
+          nullable: false
+          example: 1234
+        poi_id:
+          type: integer
+          nullable: false
+          example: 1234
+        step_id:
+          type: integer
+          nullable: true
+          example: 1234
+        trip_hash:
+          type: string
+          nullable: true
+          example: 9c235c40209d69ffceb4661a0e07a813
+        reaction:
+          type: string
+          enum:
+            - Thumbs Up
+            - Thumbs Down
+            - Neutral
+          nullable: false
+          example: Thumbs Up
+        comment:
+          type: string
+          nullable: true
+          example: 'This is a great place!'
+        created_at:
+          type: string
+          nullable: false
+          example: '2020-04-13 08:50:59'
+        updated_at:
+          type: string
+          nullable: true
+          example: null
+    UserReactionPutResponseModel:
+      allOf:
+        - $ref: '#/components/schemas/UserReactionPostResponseModel'
+        - type: object
+          properties:
+            updated_at:
+              type: string
+              nullable: true
+              example: '2020-04-13 09:50:59'
+    UserReactionsResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessfulResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/UserReactionPutResponseModel'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+    UserReactionPostResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessfulResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/UserReactionPostResponseModel'
+    UserReactionPutResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessfulResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/UserReactionPutResponseModel'
+  securitySchemes:
+    API Key:
+      name: x-api-key
+      type: apiKey
+      in: header
+      description: API Resource and Access Key
+    Access Token:
+      type: http
+      scheme: bearer
+securitySchemes:
+  BearerAuth:
+    type: http
+    scheme: bearer
+    description: ''
+  ApiKeyAuth:
+    type: apiKey
+    name: X-API-Key
+    in: header
+    description: ''
+security:
+  - ApiKeyAuth:
+      - read
+      - write
